@@ -43,7 +43,10 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-
+app.post('/urls/:id', (req, res) => {
+  urlDatabase[req.params.id] = req.body.longURL2;
+  res.redirect('/urls');
+});
 
 //
 app.get('/urls/:id', (req, res) => {
