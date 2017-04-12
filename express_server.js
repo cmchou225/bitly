@@ -11,8 +11,25 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+function generateRandomString(){
+  const x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let rnd = '';
+  for( let i = 0; i < 6; i++){
+    rnd += x.charAt(Math.floor(Math.random() * 62));
+  }
+  return rnd;
+}
+
 app.get("/", (req, res) => {
   res.end("<html><body>Hello <b>World</b></body></html>\n");
+});
+
+app.get("urls/new", (req, res) => {
+  res.render("urls_new");
+});
+app.post("/urls", (req, res) => {
+  console.log(req.body);
+  res.send("ok");
 });
 
 app.get("/urls", (req, res) => {
