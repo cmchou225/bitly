@@ -7,7 +7,15 @@
 <body>
   <ul>
   <% for(keys in urls){ %>
-    <li><%= keys %> : <%= urls[keys] %>  <a href="">Shorten Url</a></li>
+    <li><%= keys %> : <%= urls[keys] %>
+      <a>Shorten Url</a>
+      <form method="POST" action="/urls/<%= keys %>/delete">
+        <input type="submit" value="Delete">
+      </form>
+      <form method="GET" action="/urls/<%= keys %>">
+        <input type="submit" value="Edit">
+      </form>
+    </li>
   <% }; %>
 </ul>
 
