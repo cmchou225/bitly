@@ -12,12 +12,17 @@ app.set('view engine', 'ejs');
 // Middleware
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
-app.use((req, res, next) => {
-  res.locals.username = req.body.username;
-  next();
-});
-//-- App local variables
 
+//-- App local variables
+app.use((req, res, next) => {
+  let user = users.find((obj) => req.cookies['user_id'] === obj.id);
+  if(user)
+    res.locals.user = user;
+  else
+    res.locals.user = null;
+  console.log(res.locals.user);
+  next();
+})
 //---Database
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -80,7 +85,7 @@ app.post('/register', (req, res) => {
       newUser.password = hash;
       users.push(newUser);
     });
-    res.cookie('userid', userID);
+    res.cookie('user_id', userID);
     res.redirect('/');
   }
 });
@@ -88,7 +93,7 @@ app.post('/register', (req, res) => {
 //--GET request to home page
 app.get('/urls', (req, res) => {
   let templateVars = {
-    username: req.cookies['username'],
+    user: res.locals.user,
     urls: urlDatabase,
   };
   res.render('urls_index', templateVars);
@@ -96,18 +101,18 @@ app.get('/urls', (req, res) => {
 
 // Post request login to send cookies in response
 app.post('/login', (req, res) => {
-  res.cookie('username', req.body.username);
+  res.cookie('user_id', req.body.username);
   res.redirect('/urls');
 })
 // GET request for new path
 app.get('/urls/new', (req, res) => {
-  let templateVars = { username: req.cookies['username']};
+  let templateVars = { user: res.locals.user};
   res.render("urls_new", templateVars);
 });
 
 //POST request logout
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
 })
 
@@ -136,7 +141,7 @@ app.post('/urls/:id', (req, res) => {
 //GET request to urls/id path
 app.get('/urls/:id', (req, res) => {
   let templateVars = {
-    username: req.cookies['username'],
+    user: res.locals.user,
     shortURL: req.params.id,
     fullURL: urlDatabase[req.params.id]
   };
