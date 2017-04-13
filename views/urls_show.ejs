@@ -2,10 +2,18 @@
 <html lang="en">
 <head>
   <title>TinyApp</title>
+  <% include ./partials/_header %>
 </head>
 <body>
+
   <ul>
-    <li><%= shortURL %> : <%= fullURL %></li>
+    <li><%= shortURL %> : <%= fullURL %>
+    <form action="/urls/<%= shortURL %>" method="POST">
+      <input id="longURL2" type="text" name="longURL2" value="https://" style="width: 300px">
+      <input type="submit" value="Update">
+    </form>
+    </li>
+
   </ul>
 </body>
 </html>
