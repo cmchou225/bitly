@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <% include ./partials/_header %>
+    <meta charset="utf-8">
   </head>
-  <body style="font-size:20px; padding:50px;">
+  <body>
+  <header header style="padding: 20px">
+    <% include ./partials/_header %>
+  </header>
+  <div style="font-size:20px; padding:50px;">
     <form action="/urls" method="POST" style="margin:150px;">
       <label for="longURL">Enter a URL:</label>
       <input id="longURL" type="text" name="longURL" value="https://" style="width: 300px">
       <input type="submit" value="Submit">
     </form>
+  </div>
   </body>
 </html>

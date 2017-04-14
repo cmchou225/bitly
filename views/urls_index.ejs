@@ -2,22 +2,38 @@
 <html lang="en">
 <head>
   <title>TinyApp</title>
-  <% include ./partials/_header %>
+  <meta charset="utf-8">
 </head>
 <body>
-  <ul>
+  <header style="padding: 2em">
+  <% include ./partials/_header %>
+  </header>
+  <table>
+    <tr>
+      <th style="padding-bottom: 10px">Short URL</th>
+      <th style="padding-bottom: 10px">Full URL </th>
+      <th style="padding-bottom: 10px">
+        <form method="GET" action="/urls/new">
+          <input type="submit" value="Create new link">
+        </form>
+      </th>
+    </tr>
   <% for(keys in urls){ %>
-    <li><%= keys %> : <%= urls[keys] %>
-      <a>Shorten Url</a>
-      <form method="POST" action="/urls/<%= keys %>/delete">
+    <tr>
+      <td valign="center"><a href="<%= urls[keys] %>"><%= keys %>.bitly</a>:</td><td><%= urls[keys] %></td>
+      <td valign="center">
+        <form method="POST" action="/urls/<%= keys %>/delete">
         <input type="submit" value="Delete">
-      </form>
-      <form method="GET" action="/urls/<%= keys %>">
+        </form>
+      </td>
+      <td align="center">
+        <form method="GET" action="/urls/<%= keys %>">
         <input type="submit" value="Edit">
-      </form>
-    </li>
+        </form>
+      </td>
+    </tr>
   <% }; %>
-</ul>
+</table>
 
 </body>
 </html>

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>TinyApp</title>
-  <% include ./partials/_header %>
+  <title>Show URLs</title>
+  <meta charset="utf-8">
 </head>
 <body>
-
+  <header header style="padding: 20px">
+    <% include ./partials/_header %>
+  </header>
   <ul>
     <li><%= shortURL %> : <%= fullURL %>
     <form action="/urls/<%= shortURL %>" method="POST">
