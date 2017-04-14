@@ -3,19 +3,23 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
 
 //Engines
 app.set('view engine', 'ejs');
 
 // Middleware
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['Bitly'],
+  maxAge: 24 * 60 * 60 * 1000
+}));
 app.use(bodyParser.urlencoded({extended: true}));
 
 //-- App local variables
 app.use((req, res, next) => {
-  let user = users.find((obj) => req.cookies['user_id'] === obj.id);
+  let user = users.find((obj) => req.session.userEmail === obj.email);
   if(user) {
     res.locals.user = user;
     res.locals.uid = user.id;
@@ -70,7 +74,7 @@ function userLinks (userid, array) {
 // Root page
 app.get('/', (req, res, next) => {
   if(res.locals.user)
-    res.redirect('/urls')
+    res.redirect('/urls');
   res.redirect('/login');
   next();
 });
@@ -104,7 +108,7 @@ app.post('/register', (req, res) => {
     bcrypt.hash(req.body.password, 10, (err, hash) => {
       newUser.password = hash;
       users.push(newUser);
-      res.cookie('user_id', userID);
+      req.session.userEmail = req.body.email;
       res.redirect('/urls');
     });
 
@@ -125,7 +129,7 @@ app.post('/login', (req, res) => {
   let pwCorrect = bcrypt.compareSync(inputPw, registeredPw);
 
   if(userInDB && pwCorrect){
-    res.cookie('user_id', userInDB["id"]);
+    req.session.userEmail = inputEmail;
     res.redirect('/urls');
   } else{
     res.status(403);
@@ -149,14 +153,11 @@ app.get('/urls', (req, res) => {
 app.post('/urls', (req, res) => {
   let randStr = generateRandomString();
   let userid = res.locals.uid;
-  console.log(urlDatabase[userid], "==============================");
-  console.log(randStr, "=-=--=-=-=-=-=-=-=-=-=-=-=-=-=")
   urlDatabase.push({
     id: userid,
     short: randStr,
     long: req.body.longURL
   });
-  console.log(urlDatabase, "-------------------------");
   res.redirect(303, '/urls/');
 });
 
@@ -170,7 +171,7 @@ app.get('/urls/new', (req, res) => {
 
 //Logout route
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect('/');
 })
 

@@ -18,9 +18,9 @@
         </form>
       </th>
     </tr>
-  <% for(let i = 0; i < urls.length; i++ ){ %>
+  <% if (urls) { for(let i = 0; i< urls.length; i++ ){ %>
     <tr>
-      <td valign="center"><%= urls[i].short %>:</td><td><%= urls[i].long %> User <%= user.id %></td>
+      <td valign="center"><a href="/u/<%= urls[i].short %>"><%= urls[i].short %></a>:</td><td><%= urls[i].long %></td>
       <td valign="center">
         <form method="POST" action="/urls/<%= urls[i].short %>/delete">
         <input type="submit" value="Delete">
@@ -32,7 +32,7 @@
         </form>
       </td>
     </tr>
-  <% }; %>
+  <% }}; %>
 </table>
 
 </body>
