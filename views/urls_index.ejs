@@ -18,16 +18,16 @@
         </form>
       </th>
     </tr>
-  <% for(keys in urls){ %>
+  <% for(let i = 0; i < urls.length; i++ ){ %>
     <tr>
-      <td valign="center"><a href="<%= urls[keys] %>"><%= keys %>.bitly</a>:</td><td><%= urls[keys] %></td>
+      <td valign="center"><%= urls[i].short %>:</td><td><%= urls[i].long %> User <%= user.id %></td>
       <td valign="center">
-        <form method="POST" action="/urls/<%= keys %>/delete">
+        <form method="POST" action="/urls/<%= urls[i].short %>/delete">
         <input type="submit" value="Delete">
         </form>
       </td>
       <td align="center">
-        <form method="GET" action="/urls/<%= keys %>">
+        <form method="GET" action="/urls/<%= urls[i].short %>">
         <input type="submit" value="Edit">
         </form>
       </td>
