@@ -15,17 +15,12 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 //-- App local variables
 app.use((req, res, next) => {
-
   let user = users.find((obj) => req.cookies['user_id'] === obj.id);
-
   if(user){
-    console.log("user found in cookie");
-    console.log(user);
     res.locals.user = user;
   }
   else
     res.locals.user = null;
-    console.log(res.locals.user);
     next();
 });
 //---Database
