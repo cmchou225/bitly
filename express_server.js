@@ -15,14 +15,19 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 //-- App local variables
 app.use((req, res, next) => {
+
   let user = users.find((obj) => req.cookies['user_id'] === obj.id);
-  if(user)
+
+  if(user){
+    console.log("user found in cookie");
+    console.log(user);
     res.locals.user = user;
+  }
   else
     res.locals.user = null;
-  console.log(res.locals.user);
-  next();
-})
+    console.log(res.locals.user);
+    next();
+});
 //---Database
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -58,9 +63,10 @@ app.get('/', (req, res) => {
   res.send('helloooooo');
 });
 
-//Registeration path
+//Registeration routes
 app.get('/register', (req, res) => {
-  res.render('urls_reg');
+  let templateVars = { user: res.locals.users};
+  res.render('urls_reg', templateVars);
 });
 
 app.post('/register', (req, res) => {
@@ -69,28 +75,58 @@ app.post('/register', (req, res) => {
   const inDB = users.find((obj) => obj.email === newEmail);
   //const userByEmail = users.find((userObj) => req.body.email === userObj.email);
   if(!newEmail || !req.body.password){
+    console.log("there is some error");
     res.status(400);
     res.send('Please input both email and password');
   }
   else if(inDB){
+    console.log("email already exists");
     res.status(400);
     res.send('Email in use');
   }
   else {
+
+    console.log("ahh finally its working");
     let newUser = {
       id: userID,
       email: req.body.email
       };
     bcrypt.hash(req.body.password, 10, (err, hash) => {
       newUser.password = hash;
+      console.log(newUser);
       users.push(newUser);
+      res.cookie('user_id', userID);
+      res.redirect('/urls');
     });
-    res.cookie('user_id', userID);
-    res.redirect('/');
+
   }
 });
+// LOGIN routes
+app.get('/login', (req, res) => {
+    res.render('urls_login');
+});
 
-//--GET request to home page
+app.post('/login', (req, res) => {
+  let inputPw = req.body.password,
+      inputEmail = req.body.email,
+      userInDB = users.find((obj) => inputEmail === obj.email),
+      registeredPw = "a";
+  if(userInDB)
+    registeredPw = userInDB.password
+  let pwCorrect = bcrypt.compareSync(inputPw, registeredPw);
+
+  if(userInDB && pwCorrect){
+    res.cookie('user_id', userInDB["id"]);
+    res.redirect('/urls');
+  } else{
+    res.status(403);
+    res.send('Email and password mismatch');
+  }
+
+});
+
+
+//URLs route
 app.get('/urls', (req, res) => {
   let templateVars = {
     user: res.locals.user,
@@ -99,46 +135,38 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-// Post request login to send cookies in response
-app.post('/login', (req, res) => {
-  res.cookie('user_id', req.body.username);
-  res.redirect('/urls');
-})
-// GET request for new path
+app.post('/urls', (req, res) => {
+  let randStr = generateRandomString();
+  urlDatabase[randStr] = req.body.longURL;
+  res.redirect(303, '/urls/');
+  console.log(req.body, urlDatabase);
+  // res.send("ok");
+});
+
+// url/new routes
 app.get('/urls/new', (req, res) => {
   let templateVars = { user: res.locals.user};
   res.render("urls_new", templateVars);
 });
 
-//POST request logout
+//Logout route
 app.post('/logout', (req, res) => {
   res.clearCookie('user_id');
   res.redirect('/urls');
 })
 
-//POST request from url/new path to add new short and long URL
-app.post('/urls', (req, res) => {
-  let randStr = generateRandomString();
-  urlDatabase[randStr] = req.body.longURL;
-  res.redirect(303, '/urls/' + randStr);
-  console.log(req.body, urlDatabase);
-  // res.send("ok");
-});
-
-// POST request to delete path to delete url from database
+// Delete route
 app.post('/urls/:id/delete', (req, res) => {
   delete urlDatabase[req.params.id];
   res.redirect('/urls');
 });
 
-//POST request to URLs ID path
+//urls ID route
 app.post('/urls/:id', (req, res) => {
   urlDatabase[req.params.id] = req.body.longURL2;
   res.redirect('/urls');
 });
 
-
-//GET request to urls/id path
 app.get('/urls/:id', (req, res) => {
   let templateVars = {
     user: res.locals.user,
@@ -153,6 +181,7 @@ app.get('/u/:shortURL', (req, res) => {
   res.redirect(longURL);
 });
 
+//up Server
 app.listen(PORT, () => {
   console.log(`Example app listneing on port ${PORT}!`);
 });
