@@ -17,18 +17,26 @@ app.use(cookieSession({
 }));
 app.use(bodyParser.urlencoded({extended: true}));
 
-//-- App local variables
+//-- App local Variables
 app.use((req, res, next) => {
   let user = users.find((obj) => req.session.userEmail === obj.email);
   if(user) {
     res.locals.user = user;
     res.locals.uid = user.id;
-    res.locals.userLinks = userLinks(user.id, urlDatabase); // returns array of objects representing user link data
-  }
-  else
+    res.locals.userLinks = userLinks(user.id, urlDatabase);
+  } else
     res.locals.user = null;
   next();
 });
+
+// app.use('/urls*', (req, res, next) => {
+//   if(!res.locals.user){
+//     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
+//     return;
+//   } else {
+//     next();
+//   },
+// });
 
 //---Database
 const urlDatabase = [
@@ -73,8 +81,9 @@ function userLinks (userid, array) {
 
 // Root page
 app.get('/', (req, res, next) => {
-  if(res.locals.user)
+  if(res.locals.user){
     res.redirect('/urls');
+  }
   res.redirect('/login');
   next();
 });
@@ -111,7 +120,6 @@ app.post('/register', (req, res) => {
       req.session.userEmail = req.body.email;
       res.redirect('/urls');
     });
-
   }
 });
 // LOGIN routes
@@ -126,26 +134,25 @@ app.post('/login', (req, res) => {
       registeredPw = "a";
   if(userInDB)
     registeredPw = userInDB.password
-  let pwCorrect = bcrypt.compareSync(inputPw, registeredPw);
-
-  if(userInDB && pwCorrect){
-    req.session.userEmail = inputEmail;
-    res.redirect('/urls');
-  } else{
-    res.status(403);
-    res.send('Email and password mismatch');
-  }
-
+  bcrypt.compare(inputPw, registeredPw, function(err, result){
+    if(result){
+      req.session.userEmail = inputEmail;
+      res.redirect('/urls');
+    } else{
+      res.status(403);
+      res.send('Email and password mismatch');
+    }
+  });
 });
 
-
 //URLs route
-app.get('/urls', (req, res) => {
-  if(!res.locals.user)
-    res.redirect('/');
+app.get('/urls', (req, res, next) => {
+  if(!res.locals.user){
+      res.redirect('/');
+  }
   let templateVars = {
-    user: res.locals.user,
-    urls: res.locals.userLinks
+      user: res.locals.user,
+      urls: res.locals.userLinks
   };
   res.render('urls_index', templateVars);
 });
@@ -173,7 +180,7 @@ app.get('/urls/new', (req, res) => {
 app.post('/logout', (req, res) => {
   req.session = null;
   res.redirect('/');
-})
+});
 
 // Delete route
 app.post('/urls/:id/delete', (req, res) => {
