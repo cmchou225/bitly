@@ -101,7 +101,7 @@ app.get('/register', (req, res) => {
   }
 });
 
-app.post('/register', (req, res) => {     //Current ERROR TEST
+app.post('/register', (req, res) => {
   const userID = generateRandomString();
   const newEmail = req.body.email;
   const userInDB = users.find((obj) => obj.email === newEmail);
@@ -161,7 +161,7 @@ app.post('/logout', (req, res) => {
   res.redirect('/');
 });
 
-//URLs route
+//URLs view and create route
 app.get('/urls', (req, res, next) => {
   if(res.locals.user){
     let templateVars = {
@@ -171,9 +171,7 @@ app.get('/urls', (req, res, next) => {
     res.render('urls_index', templateVars);
     return;
   } else {
-    // let err = new Error();
-    // err.status = 401;
-    next(401);  //ERROR THROWN CORRECTLY
+    next(401);
   }
 });
 
@@ -188,17 +186,16 @@ app.post('/urls', (req, res, next) => {
     });
     res.redirect(`/urls/${randStr}`);
   } else
-  next(401); //Error works
+  next(401);
 });
 
-// url/new routes
 app.get('/urls/new', (req, res, next) => {
   if(res.locals.user){
     let templateVars = { user: res.locals.user};
     res.render("urls_new", templateVars);
     return;
   }
-  next(401); // Works
+  next(401);
 });
 
 // Delete route
@@ -280,7 +277,7 @@ app.use(function (err, req, res, next) {
     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
     return;
   } else if (err === 404){
-    res.status(404).send(`The link you are looking for does not exist. View your availalble links <a href="/urls">here</a>.`)
+    res.status(404).send(`The link you are looking for does not exist. View your available links <a href="/urls">here</a>.`)
   } else if(err === 403){
     res.status(403).send(`Short link you are trying to access not in your list of available links. View your available links <a href="/urls">here</a>.`)
   }
