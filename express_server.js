@@ -9,35 +9,6 @@ const bcrypt = require('bcrypt');
 //Engines
 app.set('view engine', 'ejs');
 
-// Middleware
-app.use(cookieSession({
-  name: 'session',
-  keys: ['Bitly'],
-  maxAge: 24 * 60 * 60 * 1000
-}));
-app.use(bodyParser.urlencoded({extended: true}));
-
-//-- App local Variables
-app.use((req, res, next) => {
-  let user = users.find((obj) => req.session.userEmail === obj.email);
-  if(user) {
-    res.locals.user = user;
-    res.locals.uid = user.id;
-    res.locals.userLinks = userLinks(user.id, urlDatabase);
-  } else
-    res.locals.user = null;
-  next();
-});
-
-app.use('/urls*', (req, res, next) => {
-  if(!res.locals.user){
-    res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
-    return;
-  } else {
-    next();
-  }
-});
-
 //---Database
 const urlDatabase = [
   {
@@ -66,6 +37,38 @@ const users = [
   }
 ];
 
+// Middleware
+app.use(cookieSession({
+  name: 'session',
+  keys: ['Bitly'],
+  maxAge: 24 * 60 * 60 * 1000
+}));
+app.use(bodyParser.urlencoded({extended: true}));
+
+app.use((req, res, next) => {
+  let user = users.find((obj) => req.session.userEmail === obj.email);
+  if(user) {
+    res.locals.user = user;
+    res.locals.uid = user.id;
+    res.locals.userLinks = userLinks(user.id, urlDatabase);
+  } else
+    res.locals.user = null;
+  next();
+});
+//Error Handling
+
+
+
+// app.use('/urls*', (req, res, next) => {
+//   if(!res.locals.user){
+//     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
+//     return;
+//   } else {
+//     next();
+//   }
+// });
+
+
 // Helper Func --- random string generator
 function generateRandomString(){
   const x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -79,6 +82,8 @@ function userLinks (userid, array) {
   return array.filter((obj) => obj.id === userid)
 };
 
+function errorPage(code, message){};
+
 // Root page
 app.get('/', (req, res, next) => {
   if(res.locals.user){
@@ -90,23 +95,29 @@ app.get('/', (req, res, next) => {
 
 //Registeration routes
 app.get('/register', (req, res) => {
-  let templateVars = { user: res.locals.users};
-  res.render('urls_reg', templateVars);
+  if(res.locals.user){
+    res.redirect('/');
+    return;
+  } else {
+    let templateVars = { user: res.locals.users};
+    res.render('urls_reg', templateVars);
+    return;
+  }
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', (req, res, next) => {     //Current ERROR TEST
   const userID = generateRandomString();
   const newEmail = req.body.email;
-  const inDB = users.find((obj) => obj.email === newEmail);
+  const userInDB = users.find((obj) => obj.email === newEmail);
 
   if(!newEmail || !req.body.password){
     res.status(400);
-    res.send('Please input both email and password');
+    res.send('Please input both email and password. <a href="/register">Try again</a>');
   }
 
-  else if(inDB){
+  else if(userInDB){
     res.status(400);
-    res.send('Email in use');
+    res.send('Email entered already in use. Please <a href="/register">register</a> with another email');
   }
 
   else {
@@ -124,10 +135,14 @@ app.post('/register', (req, res) => {
 });
 // LOGIN routes
 app.get('/login', (req, res) => {
-    res.render('urls_login');
+  if(res.locals.user){
+    res.redirect('/');
+    return;
+  }
+  res.render('urls_login');
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', (req, res, next) => {
   let inputPw = req.body.password,
       inputEmail = req.body.email,
       userInDB = users.find((obj) => inputEmail === obj.email),
@@ -147,33 +162,42 @@ app.post('/login', (req, res) => {
 
 //URLs route
 app.get('/urls', (req, res, next) => {
-  if(!res.locals.user){
-      res.redirect('/');
-  }
-  let templateVars = {
+  if(res.locals.user){
+    let templateVars = {
       user: res.locals.user,
       urls: res.locals.userLinks
-  };
-  res.render('urls_index', templateVars);
+    }
+    res.render('urls_index', templateVars);
+    return;
+  } else {
+    // let err = new Error();
+    // err.status = 401;
+    next(401);  //ERROR THROWN CORRECTLY
+  }
 });
 
-app.post('/urls', (req, res) => {
-  let randStr = generateRandomString();
-  let userid = res.locals.uid;
-  urlDatabase.push({
-    id: userid,
-    short: randStr,
-    long: req.body.longURL
-  });
-  res.redirect(303, '/urls/');
+app.post('/urls', (req, res, next) => {
+  if(res.locals.user){
+    let randStr = generateRandomString();
+    let userid = res.locals.uid;
+    urlDatabase.push({
+      id: userid,
+      short: randStr,
+      long: req.body.longURL
+    });
+    res.redirect(`/urls/${randStr}`);
+  } else
+  next(401); //Error works
 });
 
 // url/new routes
-app.get('/urls/new', (req, res) => {
-  if(!res.locals.user)
-    res.redirect('/');
-  let templateVars = { user: res.locals.user};
-  res.render("urls_new", templateVars);
+app.get('/urls/new', (req, res, next) => {
+  if(res.locals.user){
+    let templateVars = { user: res.locals.user};
+    res.render("urls_new", templateVars);
+    return;
+  }
+  next(401); // Works
 });
 
 //Logout route
@@ -212,6 +236,16 @@ app.get('/u/:shortURL', (req, res) => {
   res.redirect(longURL);
 });
 
+//Error Handling
+app.use(function (err, req, res, next) {
+  if(err === 401) {
+    res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
+    return;
+  } else if (err === 403){
+
+  }
+  next();
+});
 //up Server
 app.listen(PORT, () => {
   console.log(`Example app listneing on port ${PORT}!`);
