@@ -3,9 +3,10 @@
 <table>
 <% if (user) {%>
   <tr>
-    <td>
-      <h2><%= user.id %></h2>
-    </td>
+    <th>
+       <h2><a href="/urls"><%= user.email %></a></h2>
+    </th>
+  </form>
     <td>
       <form action="/logout" method="POST">
       <input type="submit" value="Logout" name="logout"></form>
