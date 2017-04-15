@@ -29,14 +29,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// app.use('/urls*', (req, res, next) => {
-//   if(!res.locals.user){
-//     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
-//     return;
-//   } else {
-//     next();
-//   },
-// });
+app.use('/urls*', (req, res, next) => {
+  if(!res.locals.user){
+    res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
+    return;
+  } else {
+    next();
+  }
+});
 
 //---Database
 const urlDatabase = [
