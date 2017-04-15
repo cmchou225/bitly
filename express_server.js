@@ -55,19 +55,11 @@ app.use((req, res, next) => {
     res.locals.user = null;
   next();
 });
-//Error Handling
 
 
-
-// app.use('/urls*', (req, res, next) => {
-//   if(!res.locals.user){
-//     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
-//     return;
-//   } else {
-//     next();
-//   }
-// });
-
+// app.use('/urls*', (req, res, next) {
+//   if()
+// })
 
 // Helper Func --- random string generator
 function generateRandomString(){
@@ -78,11 +70,20 @@ function generateRandomString(){
   }
   return rnd;
 }
+
 function userLinks (userid, array) {
   return array.filter((obj) => obj.id === userid)
 };
 
-function errorPage(code, message){};
+function rendError(code, message, link){
+  let errTemp = {
+    code: code,
+    message: message,
+    link: link
+  };
+  res.status(code);
+  res.render('errors', errTemp);
+};
 
 // Root page
 app.get('/', (req, res, next) => {
@@ -105,7 +106,7 @@ app.get('/register', (req, res) => {
   }
 });
 
-app.post('/register', (req, res, next) => {     //Current ERROR TEST
+app.post('/register', (req, res) => {     //Current ERROR TEST
   const userID = generateRandomString();
   const newEmail = req.body.email;
   const userInDB = users.find((obj) => obj.email === newEmail);
@@ -145,19 +146,27 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res, next) => {
   let inputPw = req.body.password,
       inputEmail = req.body.email,
-      userInDB = users.find((obj) => inputEmail === obj.email),
-      registeredPw = "a";
-  if(userInDB)
-    registeredPw = userInDB.password
-  bcrypt.compare(inputPw, registeredPw, function(err, result){
-    if(result){
-      req.session.userEmail = inputEmail;
-      res.redirect('/urls');
-    } else{
-      res.status(403);
-      res.send('Email and password mismatch');
-    }
-  });
+      userInDB = users.find((obj) => inputEmail === obj.email);
+  if(!userInDB){
+    res.status(403).send(`Account with email entered not found. <a href="/login">Try again</a>`);
+  } else {
+    let registeredPw = userInDB.password
+    bcrypt.compare(inputPw, registeredPw, function(err, result){
+      if(result){
+        req.session.userEmail = inputEmail;
+        res.redirect('/urls');
+      } else{
+        res.status(401);
+        res.send(`Unable to log in. Email or password entered incorrectly. <a href="/login">Try again</a>`);
+      }
+    });
+  }
+});
+
+//Logout route
+app.post('/logout', (req, res) => {
+  req.session = null;
+  res.redirect('/');
 });
 
 //URLs route
@@ -185,6 +194,7 @@ app.post('/urls', (req, res, next) => {
       short: randStr,
       long: req.body.longURL
     });
+    console.log(urlDatabase);
     res.redirect(`/urls/${randStr}`);
   } else
   next(401); //Error works
@@ -200,12 +210,6 @@ app.get('/urls/new', (req, res, next) => {
   next(401); // Works
 });
 
-//Logout route
-app.post('/logout', (req, res) => {
-  req.session = null;
-  res.redirect('/');
-});
-
 // Delete route
 app.post('/urls/:id/delete', (req, res) => {
   let linkID = req.params.id;
@@ -215,18 +219,31 @@ app.post('/urls/:id/delete', (req, res) => {
 });
 
 //urls ID route
+
+app.get('/urls/:id', (req, res, next) => {
+  let shortID = req.params.id;
+  if(res.locals.user){
+    let urlObject = urlDatabase.find((obj) => obj.short === shortID),
+        userlinks = res.locals.userLinks,
+        userShortLink = userlinks.find((obj) => obj.short === shortID);
+    if(!urlObject){
+      next(404);
+    } else if(!userShortLink){
+      res.status(403).send(`Short link you are trying to access not in your list of available links. View your avaialble links <a href="/urls">here</a>.`)
+    } else {
+      res.render('urls_show', userShortLink);
+      return;
+    }
+  } else {
+    next(401);
+  }
+});
+
 app.post('/urls/:id', (req, res) => {
   let linkID = req.params.id;
   let urlObject = urlDatabase.find((obj) => obj.short === linkID);
   urlObject.long = req.body.longURL2;
   res.redirect('/urls');
-});
-
-app.get('/urls/:id', (req, res) => {
-  let shortID = req.params.id;
-  let userlinks = res.locals.userLinks;
-  let templateVars = userlinks.find((obj) => obj.short === shortID);
-  res.render('urls_show', templateVars);
 });
 
 app.get('/u/:shortURL', (req, res) => {
@@ -241,8 +258,8 @@ app.use(function (err, req, res, next) {
   if(err === 401) {
     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
     return;
-  } else if (err === 403){
-
+  } else if (err === 404){
+    res.status(401).send(`Short link you are looking for does not exist. View your avaialble links <a href="/urls">here</a>.`)
   }
   next();
 });
