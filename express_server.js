@@ -37,6 +37,21 @@ const users = [
   }
 ];
 
+// Helper Func --- random string generator
+function generateRandomString(){
+  const x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let rnd = '';
+  for( let i = 0; i < 6; i++){
+    rnd += x.charAt(Math.floor(Math.random() * 62));
+  }
+  return rnd;
+}
+
+function userLinks (userid, array) {
+  return array.filter((obj) => obj.id === userid);
+}
+
+
 // Middleware
 app.use(cookieSession({
   name: 'session',
@@ -51,35 +66,22 @@ app.use((req, res, next) => {
     res.locals.user = user;
     res.locals.uid = user.id;
     res.locals.userLinks = userLinks(user.id, urlDatabase);
-  } else
+  } else{
     res.locals.user = null;
-  next();
+    next();
+  }
+
 });
 
 //Authorization checking middleware
 
-app.use('/urls*',(req, res, next) => {
+app.use('/urls*', (req, res, next) => {
   if(!res.locals.user){
     next(401);
   } else {
     next();
   }
 });
-
-
-// Helper Func --- random string generator
-function generateRandomString(){
-  const x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let rnd = '';
-  for( let i = 0; i < 6; i++){
-    rnd += x.charAt(Math.floor(Math.random() * 62));
-  }
-  return rnd;
-}
-
-function userLinks (userid, array) {
-  return array.filter((obj) => obj.id === userid);
-};
 
 
 // Root page
@@ -110,17 +112,13 @@ app.post('/register', (req, res) => {
 
   if(!newEmail || !req.body.password){
     res.status(400).send('Please input both email and password. <a href="/register">Try again</a>');
-  }
-
-  else if(userInDB){
+  } else if(userInDB){
     res.status(400).send('Email entered already in use. Please <a href="/register">register</a> with another email');
-  }
-
-  else {
+  } else {
     let newUser = {
       id: userID,
       email: req.body.email
-      };
+    };
     bcrypt.hash(req.body.password, 10, (err, hash) => {
       newUser.password = hash;
       users.push(newUser);
@@ -139,13 +137,13 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res, next) => {
-  let inputPw = req.body.password,
-      inputEmail = req.body.email,
-      userInDB = users.find((obj) => inputEmail === obj.email);
+  let inputPw = req.body.password;
+  let inputEmail = req.body.email;
+  let userInDB = users.find((obj) => inputEmail === obj.email);
   if(!userInDB){
     res.status(403).send(`Account with email entered not found. <a href="/login">Try again</a>`);
   } else {
-    let registeredPw = userInDB.password
+    let registeredPw = userInDB.password;
     bcrypt.compare(inputPw, registeredPw, function(err, result){
       if(result){
         req.session.userEmail = inputEmail;
@@ -168,7 +166,7 @@ app.get('/urls', (req, res) => {
   let templateVars = {
     user: res.locals.user,
     urls: res.locals.userLinks
-  }
+  };
   res.render('urls_index', templateVars);
 });
 
@@ -204,8 +202,8 @@ app.use('/urls/:id', (req, res, next) => {
 //urls ID routes
 
 app.get('/urls/:id', (req, res) => {
-  let userlinks = res.locals.userLinks,
-      userShortLink = userlinks.find((obj) => obj.short === req.params.id);
+  let userlinks = res.locals.userLinks;
+  let userShortLink = userlinks.find((obj) => obj.short === req.params.id);
   res.render('urls_show', userShortLink);
 });
 
@@ -217,13 +215,13 @@ app.post('/urls/:id', (req, res) => {
 
 app.post('/urls/:id/delete', (req, res) => {
   let urlIndex = urlDatabase.findIndex((obj) => obj.short === req.params.id);
-  urlDatabase.splice(urlIndex,1);
+  urlDatabase.splice(urlIndex, 1);
   res.redirect('/urls');
 });
 
 //Public short link access route
 app.get('/u/:shortURL', (req, res) => {
-    let urlObject = urlDatabase.find((obj) => obj.short === req.params.shortURL);
+  let urlObject = urlDatabase.find((obj) => obj.short === req.params.shortURL);
   if(urlObject){
     let longURL = `${urlObject.long}`;
     res.redirect(longURL);
@@ -233,7 +231,7 @@ app.get('/u/:shortURL', (req, res) => {
 });
 
 //Error Handling
-app.use(function (err, req, res, next) {
+app.use(function (err, req, res) {
   if(err === 401) {
     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
     return;
@@ -244,7 +242,7 @@ app.use(function (err, req, res, next) {
     res.status(403).send(`Short link you are trying to access not in your list of available links. View your available links <a href="/urls">here</a>.`);
     return;
   } else{
-    res.send(`The page you are trying to access cannot be found. <a href="/">Try again</a>`)
+    res.send(`The page you are trying to access cannot be found. <a href="/">Try again</a>`);
   }
 });
 
