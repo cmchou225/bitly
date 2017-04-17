@@ -229,7 +229,7 @@ app.use(function (err, req, res, next) {
     res.status(403).send(`Short link you are trying to access is not in your list of available links. View your available links <a href="/urls">here</a>.`);
     return;
   } else{
-    res.send(`The page you are trying to access cannot be found. <a href="/">Try again</a>`);
+    res.status(404).send(`The page you are trying to access cannot be found. <a href="/">Try again</a>`);
   }
 });
 
