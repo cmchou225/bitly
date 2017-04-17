@@ -66,11 +66,10 @@ app.use((req, res, next) => {
     res.locals.user = user;
     res.locals.uid = user.id;
     res.locals.userLinks = userLinks(user.id, urlDatabase);
-  } else{
+  } else {
     res.locals.user = null;
-    next();
   }
-
+  next();
 });
 
 //Authorization checking middleware
@@ -82,6 +81,7 @@ app.use('/urls*', (req, res, next) => {
     next();
   }
 });
+
 
 
 // Root page
@@ -231,7 +231,7 @@ app.get('/u/:shortURL', (req, res) => {
 });
 
 //Error Handling
-app.use(function (err, req, res) {
+app.use(function (err, req, res, next) {
   if(err === 401) {
     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
     return;
@@ -239,7 +239,7 @@ app.use(function (err, req, res) {
     res.status(404).send(`The link you are trying to change does not exist. View your available links <a href="/urls">here</a>.`);
     return;
   } else if(err === 403){
-    res.status(403).send(`Short link you are trying to access not in your list of available links. View your available links <a href="/urls">here</a>.`);
+    res.status(403).send(`Short link you are trying to access is not in your list of available links. View your available links <a href="/urls">here</a>.`);
     return;
   } else{
     res.send(`The page you are trying to access cannot be found. <a href="/">Try again</a>`);
