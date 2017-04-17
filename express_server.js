@@ -56,6 +56,17 @@ app.use((req, res, next) => {
   next();
 });
 
+//Authorization checking middleware
+
+app.use('/urls*',(req, res, next) => {
+  if(!res.locals.user){
+    next(401);
+  } else {
+    next();
+  }
+});
+
+
 // Helper Func --- random string generator
 function generateRandomString(){
   const x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -70,23 +81,14 @@ function userLinks (userid, array) {
   return array.filter((obj) => obj.id === userid);
 };
 
-function rendError(code, message, link){
-  let errTemp = {
-    code: code,
-    message: message,
-    link: link
-  };
-  res.status(code);
-  res.render('errors', errTemp);
-};
 
 // Root page
-app.get('/', (req, res, next) => {
+app.get('/', (req, res) => {
   if(res.locals.user){
     res.redirect('/urls');
+  } else {
+    res.redirect('/login');
   }
-  res.redirect('/login');
-  next();
 });
 
 //Registeration routes
@@ -162,107 +164,66 @@ app.post('/logout', (req, res) => {
 });
 
 //URLs view and create route
-app.get('/urls', (req, res, next) => {
-  if(res.locals.user){
-    let templateVars = {
-      user: res.locals.user,
-      urls: res.locals.userLinks
-    }
-    res.render('urls_index', templateVars);
-    return;
-  } else {
-    next(401);
+app.get('/urls', (req, res) => {
+  let templateVars = {
+    user: res.locals.user,
+    urls: res.locals.userLinks
   }
+  res.render('urls_index', templateVars);
 });
 
 app.post('/urls', (req, res, next) => {
-  if(res.locals.user){
-    let randStr = generateRandomString();
-    let userid = res.locals.uid;
-    urlDatabase.push({
-      id: userid,
-      short: randStr,
-      long: req.body.longURL
-    });
-    res.redirect(`/urls/${randStr}`);
-  } else
-  next(401);
+  let randStr = generateRandomString();
+  let userid = res.locals.uid;
+  urlDatabase.push({
+    id: userid,
+    short: randStr,
+    long: req.body.longURL
+  });
+  res.redirect(`/urls/${randStr}`);
 });
 
 app.get('/urls/new', (req, res, next) => {
-  if(res.locals.user){
-    let templateVars = { user: res.locals.user};
-    res.render("urls_new", templateVars);
-    return;
-  }
-  next(401);
+  let templateVars = { user: res.locals.user};
+  res.render("urls_new", templateVars);
 });
 
-// Delete route
-app.post('/urls/:id/delete', (req, res, next) => {
-  let shortID = req.params.id;
-  if(res.locals.user){
-    let userlinks = res.locals.userLinks,
-        urlIndex = urlDatabase.findIndex((obj) => obj.short === shortID),
-        userShortLink = userlinks.find((obj) => obj.short === shortID);
-    if(!urlIndex){
-      next(404);
-    } else if (!userShortLink) {
-      next(403);
-    } else {
-        urlDatabase.splice(urlIndex,1);
-        res.redirect('/urls');
-        return;
-    }
+//Short URL checking middleware
+
+app.use('/urls/:id', (req, res, next) => {
+  res.locals.urlObject = urlDatabase.find((obj) => obj.short === req.params.id);
+  if(!res.locals.urlObject){
+    next(404);
+  } else if(res.locals.urlObject.id !== res.locals.user.id){
+    next(403);
   } else {
-    next(401)
+    next();
   }
 });
 
-//urls ID route
+//urls ID routes
 
-app.get('/urls/:id', (req, res, next) => {
-  let shortID = req.params.id;
-  if(res.locals.user){
-    let urlObject = urlDatabase.find((obj) => obj.short === shortID),
-        userlinks = res.locals.userLinks,
-        userShortLink = userlinks.find((obj) => obj.short === shortID);
-    if(!urlObject){
-      next(404);
-    } else if(!userShortLink){
-      next(403);
-    } else {
-      res.render('urls_show', userShortLink);
-      return;
-    }
-  } else {
-    next(401);
-  }
+app.get('/urls/:id', (req, res) => {
+  let userlinks = res.locals.userLinks,
+      userShortLink = userlinks.find((obj) => obj.short === req.params.id);
+  res.render('urls_show', userShortLink);
 });
 
-app.post('/urls/:id', (req, res, next) => {
-  let shortID = req.params.id;
-  if(res.locals.user){
-    let userlinks = res.locals.userLinks,
-        urlObject = urlDatabase.find((obj) => obj.short === shortID),
-        userShortLink = userlinks.find((obj) => obj.short === shortID);
-    if(!urlObject){
-      next(404);
-    } else if(!userShortLink){
-      next(403);
-    } else {
-      urlObject.long = req.body.longURL2;
-      res.redirect('/urls');
-      return;
-    }
-  } else {
-    next(401);
-  }
+app.post('/urls/:id', (req, res) => {
+  let urlObject = urlDatabase.find((obj) => obj.short === req.params.id);
+  urlObject.long = req.body.longURL2;
+  res.redirect('/urls');
 });
 
+app.post('/urls/:id/delete', (req, res) => {
+  let urlIndex = urlDatabase.findIndex((obj) => obj.short === req.params.id);
+  urlDatabase.splice(urlIndex,1);
+  res.redirect('/urls');
+});
+
+//Public short link access route
 app.get('/u/:shortURL', (req, res) => {
-    let shortID = req.params.shortURL;
-    let urlObject = urlDatabase.find((obj) => obj.short === shortID);
+    let urlObject = urlDatabase.find((obj) => obj.short === req.params.shortURL);
   if(urlObject){
     let longURL = `${urlObject.long}`;
     res.redirect(longURL);
@@ -277,13 +238,17 @@ app.use(function (err, req, res, next) {
     res.status(401).send(`Please sign in to view or edit links. <a href="/login">Sign in</a>`);
     return;
   } else if (err === 404){
-    res.status(404).send(`The link you are looking for does not exist. View your available links <a href="/urls">here</a>.`)
+    res.status(404).send(`The link you are trying to change does not exist. View your available links <a href="/urls">here</a>.`);
+    return;
   } else if(err === 403){
-    res.status(403).send(`Short link you are trying to access not in your list of available links. View your available links <a href="/urls">here</a>.`)
+    res.status(403).send(`Short link you are trying to access not in your list of available links. View your available links <a href="/urls">here</a>.`);
+    return;
+  } else{
+    res.send(`The page you are trying to access cannot be found. <a href="/">Try again</a>`)
   }
-  next();
 });
-//up Server
+
+//Server startup
 app.listen(PORT, () => {
   console.log(`Example app listneing on port ${PORT}!`);
 });
