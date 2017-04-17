@@ -52,8 +52,9 @@ app.use((req, res, next) => {
     res.locals.user = user;
     res.locals.uid = user.id;
     res.locals.userLinks = helperFunc.userLinks(user.id, urlDatabase);
-  } else
+  } else {
     res.locals.user = null;
+  }
   next();
 });
 
@@ -89,7 +90,7 @@ require('./routes/linkEdit_routes')(app, users, urlDatabase);
 
 //Public short link access route
 app.get('/u/:shortURL', (req, res) => {
-    let urlObject = urlDatabase.find((obj) => obj.short === req.params.shortURL);
+  let urlObject = urlDatabase.find((obj) => obj.short === req.params.shortURL);
   if(urlObject){
     let longURL = `${urlObject.long}`;
     res.redirect(longURL);
