@@ -5,6 +5,7 @@ const PORT = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require('bcrypt');
+const helperFunc = require('./helperFunc');
 
 //Engines
 app.set('view engine', 'ejs');
@@ -37,20 +38,6 @@ const users = [
   }
 ];
 
-// Helper Func --- random string generator
-function generateRandomString(){
-  const x = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let rnd = '';
-  for( let i = 0; i < 6; i++){
-    rnd += x.charAt(Math.floor(Math.random() * 62));
-  }
-  return rnd;
-}
-
-function userLinks (userid, array) {
-  return array.filter((obj) => obj.id === userid);
-}
-
 
 // Middleware
 app.use(cookieSession({
@@ -65,7 +52,7 @@ app.use((req, res, next) => {
   if(user) {
     res.locals.user = user;
     res.locals.uid = user.id;
-    res.locals.userLinks = userLinks(user.id, urlDatabase);
+    res.locals.userLinks = helperFunc.userLinks(user.id, urlDatabase);
   } else {
     res.locals.user = null;
   }
@@ -106,7 +93,7 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', (req, res) => {
-  const userID = generateRandomString();
+  const userID = helperFunc.genRanString();
   const newEmail = req.body.email;
   const userInDB = users.find((obj) => obj.email === newEmail);
 
@@ -171,7 +158,7 @@ app.get('/urls', (req, res) => {
 });
 
 app.post('/urls', (req, res, next) => {
-  let randStr = generateRandomString();
+  let randStr = helperFunc.genRanString();
   let userid = res.locals.uid;
   urlDatabase.push({
     id: userid,
