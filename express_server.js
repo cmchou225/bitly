@@ -99,6 +99,7 @@ app.get('/u/:shortURL', (req, res) => {
 });
 
 //Error Handling
+
 require('./routes/errors')(app);
 
 //Server startup
